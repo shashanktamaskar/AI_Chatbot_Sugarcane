@@ -1,0 +1,88 @@
+╔══════════════════════════════════════════════════════════════════════════════╗
+║                     DOCUMENT CHATBOT - QUICK START                            ║
+╚══════════════════════════════════════════════════════════════════════════════╝
+
+STEP 1: SET UP ENVIRONMENT (First time only)
+───────────────────────────────────────────
+
+Windows:
+  python -m venv venv
+  venv\Scripts\activate
+
+macOS/Linux:
+  python3 -m venv venv
+  source venv/bin/activate
+
+
+STEP 2: INSTALL DEPENDENCIES
+─────────────────────────────
+
+  pip install -r requirements.txt
+
+
+STEP 3: CONFIGURE API KEY
+──────────────────────────
+
+1. Copy .env.example to .env:
+   cp .env.example .env  (Linux/Mac) or copy .env.example .env (Windows)
+
+2. Edit .env and add your Google Gemini API key:
+   GOOGLE_API_KEY=your_actual_api_key_here
+
+   Get your key from: https://ai.google.dev/
+
+
+STEP 4: RUN THE APP
+───────────────────
+
+  python app.py
+
+Then open: http://localhost:5000
+
+
+═══════════════════════════════════════════════════════════════════════════════
+
+FEATURES:
+  ✓ Upload documents (PDF, TXT, DOC, DOCX)
+  ✓ Ask questions about your documents
+  ✓ Get AI-powered responses with sources
+  ✓ Modern, responsive UI
+  ✓ Secure API handling
+
+LIMITS:
+  • Max file size: 50MB
+  • Max question length: 5000 characters
+  • Supported formats: PDF, TXT, DOC, DOCX
+
+TROUBLESHOOTING:
+  Q: "GOOGLE_API_KEY not set" error
+  A: Make sure .env file exists with your API key
+
+  Q: "ModuleNotFoundError: No module named 'flask'"
+  A: Run: pip install -r requirements.txt
+
+  Q: Port 5000 already in use
+  A: Change port in app.py or stop other process
+
+FILES OVERVIEW:
+  app.py                 - Main Flask application
+  templates/index.html   - Web interface
+  requirements.txt       - Python dependencies
+  .env.example           - Environment template
+  .env                   - Your configuration (add API key here)
+  README.md              - Full documentation
+  SETUP_INSTRUCTIONS.md  - Detailed setup guide
+  CHANGES_SUMMARY.md     - All improvements made
+
+SECURITY NOTES:
+  ⚠ NEVER share your .env file
+  ⚠ NEVER commit .env to git
+  ⚠ Keep your API key secret
+  ⚠ Use HTTPS in production
+
+═══════════════════════════════════════════════════════════════════════════════
+
+NEED HELP?
+  - See README.md for complete documentation
+  - See SETUP_INSTRUCTIONS.md for detailed setup
+  - See CHANGES_SUMMARY.md for all improvements
