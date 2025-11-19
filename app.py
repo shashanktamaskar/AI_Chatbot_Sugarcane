@@ -7,6 +7,8 @@ import os
 from dotenv import load_dotenv
 from werkzeug.utils import secure_filename
 import logging
+from PIL import Image
+import io
 
 # Load environment variables
 load_dotenv()
@@ -21,7 +23,41 @@ logger = logging.getLogger(__name__)
 # Configuration
 app.config['UPLOAD_FOLDER'] = "uploads"
 app.config['MAX_CONTENT_LENGTH'] = 50 * 1024 * 1024  # 50MB max file size
-ALLOWED_EXTENSIONS = {'pdf', 'txt', 'doc', 'docx'}
+ALLOWED_EXTENSIONS = {'pdf', 'txt', 'doc', 'docx', 'jpg', 'jpeg', 'png'}
+IMAGE_EXTENSIONS = {'jpg', 'jpeg', 'png'}
+
+# Language-specific agricultural system instructions
+AGRICULTURAL_INSTRUCTIONS = {
+    'english': """You are an expert agricultural advisor specializing in sugarcane cultivation.
+    Provide practical, actionable advice to farmers in simple, easy-to-understand language.
+    Focus on: sugarcane cultivation, pest control, disease management, fertilizer application,
+    irrigation, market prices, and government schemes. Always be respectful and supportive.""",
+
+    'hindi': """आप गन्ने की खेती में विशेषज्ञ कृषि सलाहकार हैं।
+    किसानों को सरल और समझने में आसान भाषा में व्यावहारिक सलाह दें।
+    फोकस: गन्ने की खेती, कीट नियंत्रण, रोग प्रबंधन, उर्वरक प्रयोग, सिंचाई, बाजार मूल्य,
+    और सरकारी योजनाएं। हमेशा सम्मानजनक और सहायक रहें।""",
+
+    'marathi': """तुम्ही ऊस लागवडीचे तज्ञ कृषी सल्लागार आहात.
+    शेतकऱ्यांना सोप्या, समजण्यास सोप्या भाषेत व्यावहारिक सल्ला द्या.
+    फोकस: ऊस लागवड, कीड नियंत्रण, रोग व्यवस्थापन, खत वापर, सिंचन, बाजार भाव,
+    आणि सरकारी योजना. नेहमी आदरपूर्ण आणि सहाय्यक रहा.""",
+
+    'tamil': """நீங்கள் கரும்பு சாகுபடியில் நிபுணத்துவம் பெற்ற விவசாய ஆலோசகர்.
+    விவசாயிகளுக்கு எளிமையான, புரிந்துகொள்ள எளிதான மொழியில் நடைமுறை ஆலோசனை வழங்கவும்.
+    கவனம்: கரும்பு சாகுபடி, பூச்சி கட்டுப்பாடு, நோய் மேலாண்மை, உரம் பயன்பாடு, நீர்ப்பாசனம்,
+    சந்தை விலைகள், மற்றும் அரசாங்க திட்டங்கள். எப்போதும் மரியாதையுடனும் ஆதரவாகவும் இருங்கள்.""",
+
+    'telugu': """మీరు చెరకు సాగులో నిపుణుడైన వ్యవసాయ సలహాదారు.
+    రైతులకు సరళమైన, అర్థం చేసుకోవడానికి సులభమైన భాషలో ఆచరణాత్మక సలహా ఇవ్వండి.
+    దృష్టి: చెరకు సాగు, తెగులు నియంత్రణ, వ్యాధి నిర్వహణ, ఎరువుల ఉపయోగం, నీటిపారుదల,
+    మార్కెట్ ధరలు, మరియు ప్రభుత్వ పథకాలు. ఎల్లప్పుడూ గౌరవప్రదంగా మరియు సహాయకరంగా ఉండండి.""",
+
+    'kannada': """ನೀವು ಕಬ್ಬಿನ ಕೃಷಿಯಲ್ಲಿ ಪರಿಣಿತ ಕೃಷಿ ಸಲಹೆಗಾರರು.
+    ರೈತರಿಗೆ ಸರಳ, ಅರ್ಥಮಾಡಿಕೊಳ್ಳಲು ಸುಲಭವಾದ ಭಾಷೆಯಲ್ಲಿ ಪ್ರಾಯೋಗಿಕ ಸಲಹೆ ನೀಡಿ.
+    ಗಮನ: ಕಬ್ಬಿನ ಕೃಷಿ, ಕೀಟ ನಿಯಂತ್ರಣ, ರೋಗ ನಿರ್ವಹಣೆ, ಗೊಬ್ಬರ ಬಳಕೆ, ನೀರಾವರಿ,
+    ಮಾರುಕಟ್ಟೆ ಬೆಲೆಗಳು, ಮತ್ತು ಸರ್ಕಾರಿ ಯೋಜನೆಗಳು. ಯಾವಾಗಲೂ ಗೌರವಾನ್ವಿತ ಮತ್ತು ಸಹಾಯಕರಾಗಿರಿ."""
+}
 
 # Initialize Gemini client
 api_key = os.getenv("GOOGLE_API_KEY")
@@ -108,25 +144,30 @@ def upload_files():
 
 @app.route("/ask", methods=["POST"])
 def ask():
-    """Handle question queries with error handling and validation"""
+    """Handle question queries with language support and error handling"""
     try:
         # Validate request
         if not request.json:
             return jsonify({"error": "Request must be JSON"}), 400
 
         user_question = request.json.get("question", "").strip()
+        language = request.json.get("language", "english").lower()
+
         if not user_question:
             return jsonify({"error": "Question cannot be empty"}), 400
 
         if len(user_question) > 5000:
             return jsonify({"error": "Question too long (max 5000 characters)"}), 400
 
-        logger.info(f"Processing question: {user_question[:100]}...")
+        # Get language-specific system instruction
+        system_instruction = AGRICULTURAL_INSTRUCTIONS.get(language, AGRICULTURAL_INSTRUCTIONS['english'])
 
-        # Generate content with Gemini
+        logger.info(f"Processing question in {language}: {user_question[:100]}...")
+
+        # Generate content with Gemini with system instruction
         response = client.models.generate_content(
             model='gemini-2.0-flash',
-            contents=user_question,
+            contents=f"{system_instruction}\n\nUser Question: {user_question}",
             config=types.GenerateContentConfig(
                 tools=[types.Tool(
                     file_search=types.FileSearch(
@@ -158,6 +199,79 @@ def ask():
         logger.error(f"Error in /ask: {str(e)}")
         return jsonify({"error": "Failed to process question"}), 500
 
+@app.route("/analyze_crop_image", methods=["POST"])
+def analyze_crop_image():
+    """Handle crop disease image analysis"""
+    try:
+        if "image" not in request.files:
+            return jsonify({"error": "No image provided"}), 400
+
+        image_file = request.files["image"]
+        language = request.form.get("language", "english").lower()
+
+        if image_file.filename == '':
+            return jsonify({"error": "No image selected"}), 400
+
+        # Validate file type
+        if not image_file.filename.lower().endswith(('.jpg', '.jpeg', '.png')):
+            return jsonify({"error": "Only JPG, JPEG, and PNG images are allowed"}), 400
+
+        # Get language-specific instruction
+        system_instruction = AGRICULTURAL_INSTRUCTIONS.get(language, AGRICULTURAL_INSTRUCTIONS['english'])
+
+        logger.info(f"Analyzing crop image in {language}: {image_file.filename}")
+
+        # Read image data
+        image_bytes = image_file.read()
+
+        # Prepare prompt for crop disease analysis
+        analysis_prompt = f"""{system_instruction}
+
+Analyze this crop image and provide:
+1. Identify the crop (if visible)
+2. Identify any diseases, pests, or health issues
+3. Assess the severity (mild, moderate, severe)
+4. Recommend immediate treatment steps
+5. Suggest preventive measures for the future
+
+Please provide practical, actionable advice in {language} language."""
+
+        # Use Gemini Vision API for image analysis
+        response = client.models.generate_content(
+            model='gemini-2.0-flash',
+            contents=[
+                types.Content(
+                    parts=[
+                        types.Part(text=analysis_prompt),
+                        types.Part(inline_data=types.Blob(
+                            mime_type=image_file.content_type or 'image/jpeg',
+                            data=image_bytes
+                        ))
+                    ]
+                )
+            ],
+            config=types.GenerateContentConfig(
+                tools=[types.Tool(
+                    file_search=types.FileSearch(
+                        file_search_store_names=[FILE_SEARCH_STORE.name]
+                    )
+                )]
+            )
+        )
+
+        # Extract analysis
+        if not response.candidates:
+            return jsonify({"error": "No analysis generated"}), 500
+
+        analysis = response.text or "Unable to analyze the image"
+
+        logger.info(f"Image analysis completed successfully")
+        return jsonify({"analysis": analysis}), 200
+
+    except Exception as e:
+        logger.error(f"Error in /analyze_crop_image: {str(e)}")
+        return jsonify({"error": "Failed to analyze image. Please try again with a clear crop image."}), 500
+
 @app.errorhandler(413)
 def request_entity_too_large(error):
     """Handle file size limit exceeded"""
@@ -178,5 +292,6 @@ if __name__ == "__main__":
     # Ensure upload folder exists
     os.makedirs(app.config['UPLOAD_FOLDER'], exist_ok=True)
 
-    # Run on LAN (use --cert and --key for HTTPS in production)
-    app.run(host="0.0.0.0", port=5000, debug=False)
+    # Use Render's PORT environment variable for deployment
+    port = int(os.environ.get("PORT", 5000))
+    app.run(host="0.0.0.0", port=port, debug=False)
