@@ -62,22 +62,41 @@ AGRICULTURAL_INSTRUCTIONS = {
 # Initialize Gemini client
 api_key = os.getenv("GOOGLE_API_KEY")
 if not api_key:
+    logger.error("GOOGLE_API_KEY environment variable is not set")
     raise ValueError("GOOGLE_API_KEY environment variable is not set")
 
-client = genai.Client(api_key=api_key)
-
-FILE_SEARCH_STORE = client.file_search_stores.create()
-print("Using File Store:", FILE_SEARCH_STORE.name)
+try:
+    client = genai.Client(api_key=api_key)
+    FILE_SEARCH_STORE = client.file_search_stores.create()
+    logger.info(f"Successfully initialized Gemini client and file store: {FILE_SEARCH_STORE.name}")
+except Exception as e:
+    logger.error(f"Failed to initialize Gemini client or file store: {str(e)}")
+    # Set to None - we'll create on first use if needed
+    FILE_SEARCH_STORE = None
+    logger.warning("Application starting without file search store. Will attempt to create on first use.")
 
 def allowed_file(filename):
     """Check if file extension is allowed"""
     return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
 
+def ensure_file_search_store():
+    """Ensure file search store exists, create if needed"""
+    global FILE_SEARCH_STORE
+    if FILE_SEARCH_STORE is None:
+        try:
+            FILE_SEARCH_STORE = client.file_search_stores.create()
+            logger.info(f"Created new file search store: {FILE_SEARCH_STORE.name}")
+        except Exception as e:
+            logger.error(f"Failed to create file search store: {str(e)}")
+            raise
+    return FILE_SEARCH_STORE
+
 def upload_file_to_store(file_path):
     """Upload file to Gemini file search store with error handling"""
     try:
+        store = ensure_file_search_store()
         upload_op = client.file_search_stores.upload_to_file_search_store(
-            file_search_store_name=FILE_SEARCH_STORE.name,
+            file_search_store_name=store.name,
             file=file_path
         )
         while not upload_op.done:
@@ -92,6 +111,32 @@ def upload_file_to_store(file_path):
 @app.route("/")
 def index():
     return render_template("index.html")
+
+@app.route("/health")
+def health():
+    """Health check endpoint for monitoring"""
+    try:
+        # Check if API key is set
+        if not os.getenv("GOOGLE_API_KEY"):
+            return jsonify({
+                "status": "unhealthy",
+                "error": "GOOGLE_API_KEY not configured"
+            }), 500
+
+        # Check if file store is initialized
+        store = ensure_file_search_store()
+
+        return jsonify({
+            "status": "healthy",
+            "gemini_api": "connected",
+            "file_store": "initialized"
+        }), 200
+    except Exception as e:
+        logger.error(f"Health check failed: {str(e)}")
+        return jsonify({
+            "status": "unhealthy",
+            "error": str(e)
+        }), 500
 
 @app.route("/upload", methods=["POST"])
 def upload_files():
@@ -164,6 +209,9 @@ def ask():
 
         logger.info(f"Processing question in {language}: {user_question[:100]}...")
 
+        # Ensure file search store is available
+        store = ensure_file_search_store()
+
         # Generate content with Gemini with system instruction
         response = client.models.generate_content(
             model='gemini-2.0-flash',
@@ -171,7 +219,7 @@ def ask():
             config=types.GenerateContentConfig(
                 tools=[types.Tool(
                     file_search=types.FileSearch(
-                        file_search_store_names=[FILE_SEARCH_STORE.name]
+                        file_search_store_names=[store.name]
                     )
                 )]
             )
@@ -236,6 +284,9 @@ Analyze this crop image and provide:
 
 Please provide practical, actionable advice in {language} language."""
 
+        # Ensure file search store is available
+        store = ensure_file_search_store()
+
         # Use Gemini Vision API for image analysis
         response = client.models.generate_content(
             model='gemini-2.0-flash',
@@ -253,7 +304,7 @@ Please provide practical, actionable advice in {language} language."""
             config=types.GenerateContentConfig(
                 tools=[types.Tool(
                     file_search=types.FileSearch(
-                        file_search_store_names=[FILE_SEARCH_STORE.name]
+                        file_search_store_names=[store.name]
                     )
                 )]
             )
