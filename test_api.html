@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <title>API Test</title>
+    <style>
+        body {
+            font-family: Arial;
+            padding: 20px;
+        }
+
+        button {
+            padding: 10px 20px;
+            margin: 10px;
+            font-size: 16px;
+        }
+
+        #result {
+            margin-top: 20px;
+            padding: 15px;
+            border: 1px solid #ccc;
+            white-space: pre-wrap;
+        }
+
+        .success {
+            background: #d4edda;
+        }
+
+        .error {
+            background: #f8d7da;
+        }
+    </style>
+</head>
+
+<body>
+    <h1>AI Chatbot API Test</h1>
+
+    <button onclick="testHealth()">Test /health</button>
+    <button onclick="testChat()">Test /ask (Chat)</button>
+    <button onclick="testAnalyze()">Test /analyze</button>
+
+    <div id="result"></div>
+
+    <script>
+        const BASE_URL = 'http://localhost:5000';
+
+        function showResult(data, success = true) {
+            const result = document.getElementById('result');
+            result.textContent = JSON.stringify(data, null, 2);
+            result.className = success ? 'success' : 'error';
+        }
+
+        async function testHealth() {
+            try {
+                const response = await fetch(`${BASE_URL}/health`);
+                const data = await response.json();
+                showResult({ status: response.status, data }, response.ok);
+            } catch (error) {
+                showResult({ error: error.message }, false);
+            }
+        }
+
+        async function testChat() {
+            try {
+                const response = await fetch(`${BASE_URL}/ask`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        question: 'What is sugarcane?',
+                        language: 'english'
+                    })
+                });
+                const data = await response.json();
+                showResult({
+                    status: response.status,
+                    hasResponseKey: 'response' in data,
+                    data
+                }, response.ok);
+            } catch (error) {
+                showResult({ error: error.message }, false);
+            }
+        }
+
+        async function testAnalyze() {
+            showResult({ message: 'Image analysis requires file upload - test manually in main app' });
+        }
+    </script>
+</body>
+
+</html>

@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -24,7 +25,7 @@
             background: white;
             border-radius: 12px;
             padding: 20px;
-            box-shadow: 0 10px 40px rgba(0,0,0,0.2);
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
         }
 
         /* Header */
@@ -198,7 +199,7 @@
             max-width: 100%;
             max-height: 300px;
             border-radius: 8px;
-            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
         }
 
         /* Alert */
@@ -341,8 +342,15 @@
         }
 
         @keyframes pulse {
-            0%, 100% { opacity: 1; }
-            50% { opacity: 0.7; }
+
+            0%,
+            100% {
+                opacity: 1;
+            }
+
+            50% {
+                opacity: 0.7;
+            }
         }
 
         /* Spinner */
@@ -357,8 +365,13 @@
         }
 
         @keyframes spin {
-            0% { transform: rotate(0deg); }
-            100% { transform: rotate(360deg); }
+            0% {
+                transform: rotate(0deg);
+            }
+
+            100% {
+                transform: rotate(360deg);
+            }
         }
 
         /* Mobile Responsive */
@@ -420,379 +433,380 @@
         }
     </style>
 </head>
+
 <body>
 
-<div class="container">
-    <!-- Header -->
-    <div class="header">
-        <h1>🌾 किसान कृषि सलाहकार | Farmer Agricultural Advisor</h1>
-        <p>गन्ने की खेती के लिए विशेषज्ञ सलाह | Expert Advice for Sugarcane Farming</p>
+    <div class="container">
+        <!-- Header -->
+        <div class="header">
+            <h1>🌾 किसान कृषि सलाहकार | Farmer Agricultural Advisor</h1>
+            <p>गन्ने की खेती के लिए विशेषज्ञ सलाह | Expert Advice for Sugarcane Farming</p>
+        </div>
+
+        <!-- Alerts -->
+        <div id="alertBox" class="alert"></div>
+
+        <!-- Language Selector -->
+        <div class="language-section">
+            <label for="languageSelect">🌐 भाषा चुनें | Select Language:</label>
+            <select id="languageSelect">
+                <option value="english">English | अंग्रेजी</option>
+                <option value="hindi" selected>हिंदी | Hindi</option>
+                <option value="marathi">मराठी | Marathi</option>
+                <option value="tamil">தமிழ் | Tamil</option>
+                <option value="telugu">తెలుగు | Telugu</option>
+                <option value="kannada">ಕನ್ನಡ | Kannada</option>
+                <option value="punjabi">ਪੰਜਾਬੀ (Punjabi)</option>
+            </select>
+        </div>
+
+        <!-- Document Upload Section -->
+        <div class="upload-section">
+            <h2>📂 दस्तावेज़ अपलोड करें | Upload Documents</h2>
+            <div class="file-input-wrapper">
+                <input type="file" id="fileInput" name="files" multiple accept=".pdf,.txt,.doc,.docx">
+                <button type="button" id="uploadBtn" class="btn-primary">📤 अपलोड करें | Upload Files</button>
+            </div>
+            <div class="file-info">Max 50MB per file | PDF, TXT, DOC, DOCX allowed</div>
+        </div>
+
+        <!-- Crop Image Analysis Section -->
+        <div class="image-section">
+            <h2>📸 फसल रोग पहचान | Crop Disease Identification</h2>
+            <div class="file-input-wrapper">
+                <input type="file" id="imageInput" accept="image/jpeg,image/jpg,image/png">
+                <button type="button" id="analyzeBtn" class="btn-secondary">🔍 फोटो जांचें | Analyze Image</button>
+            </div>
+            <div class="file-info">Upload crop photo | JPG, JPEG, PNG (max 10MB)</div>
+            <div class="image-preview" id="imagePreview">
+                <img id="previewImg" alt="Crop preview">
+            </div>
+        </div>
+
+        <!-- Chat Section -->
+        <div id="chatbox"></div>
+
+        <!-- Question Input -->
+        <div class="question-section">
+            <div class="input-row">
+                <input type="text" id="question" placeholder="अपना सवाल पूछें | Ask your question..." maxlength="5000">
+                <button type="button" id="voiceBtn" class="btn-icon btn-secondary" title="Voice Input">🎤</button>
+                <button type="button" id="askBtn" class="btn-icon btn-primary" title="Send">📤</button>
+            </div>
+            <div class="voice-controls">
+                <button type="button" id="speakBtn" class="voice-btn btn-secondary">🔊 उत्तर सुनें | Listen to
+                    Answer</button>
+                <button type="button" id="stopSpeakBtn" class="voice-btn btn-danger" style="display:none;">⏹️ बंद करें |
+                    Stop Speaking</button>
+            </div>
+        </div>
     </div>
 
-    <!-- Alerts -->
-    <div id="alertBox" class="alert"></div>
+    <script>
+        // Variables
+        let recognition;
+        let synthesis = window.speechSynthesis;
+        let currentUtterance = null;
+        let lastBotMessage = '';
 
-    <!-- Language Selector -->
-    <div class="language-section">
-        <label for="languageSelect">🌐 भाषा चुनें | Select Language:</label>
-        <select id="languageSelect">
-            <option value="english">English | अंग्रेजी</option>
-            <option value="hindi" selected>हिंदी | Hindi</option>
-            <option value="marathi">मराठी | Marathi</option>
-            <option value="tamil">தமிழ் | Tamil</option>
-            <option value="telugu">తెలుగు | Telugu</option>
-            <option value="kannada">ಕನ್ನಡ | Kannada</option>
-        </select>
-    </div>
-
-    <!-- Document Upload Section -->
-    <div class="upload-section">
-        <h2>📄 दस्तावेज़ अपलोड करें | Upload Documents</h2>
-        <div class="file-input-wrapper">
-            <input type="file" id="fileInput" name="files" multiple accept=".pdf,.txt,.doc,.docx">
-            <button type="button" id="uploadBtn" class="btn-primary">📤 अपलोड करें | Upload Files</button>
-        </div>
-        <div class="file-info">Max 50MB per file | PDF, TXT, DOC, DOCX allowed</div>
-    </div>
-
-    <!-- Crop Image Analysis Section -->
-    <div class="image-section">
-        <h2>📸 फसल रोग पहचान | Crop Disease Identification</h2>
-        <div class="file-input-wrapper">
-            <input type="file" id="imageInput" accept="image/jpeg,image/jpg,image/png">
-            <button type="button" id="analyzeBtn" class="btn-secondary">🔍 फोटो जांचें | Analyze Image</button>
-        </div>
-        <div class="file-info">Upload crop photo | JPG, JPEG, PNG (max 10MB)</div>
-        <div class="image-preview" id="imagePreview">
-            <img id="previewImg" alt="Crop preview">
-        </div>
-    </div>
-
-    <!-- Chat Section -->
-    <div id="chatbox"></div>
-
-    <!-- Question Input -->
-    <div class="question-section">
-        <div class="input-row">
-            <input type="text" id="question" placeholder="अपना सवाल पूछें | Ask your question..." maxlength="5000">
-            <button type="button" id="voiceBtn" class="btn-icon btn-secondary" title="Voice Input">🎤</button>
-            <button type="button" id="askBtn" class="btn-icon btn-primary" title="Send">📤</button>
-        </div>
-        <div class="voice-controls">
-            <button type="button" id="speakBtn" class="voice-btn btn-secondary">🔊 उत्तर सुनें | Listen to Answer</button>
-            <button type="button" id="stopSpeakBtn" class="voice-btn btn-danger" style="display:none;">⏹️ बंद करें | Stop</button>
-        </div>
-    </div>
-</div>
-
-<script>
-    // Global variables
-    let recognition = null;
-    let synthesis = window.speechSynthesis;
-    let currentUtterance = null;
-    let lastBotMessage = '';
-
-    // Language code mapping for speech
-    const languageCodes = {
-        'english': 'en-IN',
-        'hindi': 'hi-IN',
-        'marathi': 'mr-IN',
-        'tamil': 'ta-IN',
-        'telugu': 'te-IN',
-        'kannada': 'kn-IN'
-    };
-
-    // Initialize Speech Recognition
-    function initSpeechRecognition() {
-        if ('webkitSpeechRecognition' in window || 'SpeechRecognition' in window) {
-            const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-            recognition = new SpeechRecognition();
-            recognition.continuous = false;
-            recognition.interimResults = false;
-            recognition.maxAlternatives = 1;
-        }
-    }
-
-    initSpeechRecognition();
-
-    // Get selected language
-    function getLanguage() {
-        return document.getElementById('languageSelect').value;
-    }
-
-    // Utility functions
-    function escapeHtml(text) {
-        const div = document.createElement('div');
-        div.textContent = text;
-        return div.innerHTML;
-    }
-
-    function showAlert(message, type = 'info') {
-        const alertBox = document.getElementById('alertBox');
-        alertBox.textContent = message;
-        alertBox.className = `alert show ${type}`;
-        setTimeout(() => {
-            alertBox.classList.remove('show');
-        }, 5000);
-    }
-
-    function addMessage(text, type = 'user') {
-        const chatbox = document.getElementById('chatbox');
-        const msgDiv = document.createElement('div');
-        msgDiv.className = `msg ${type}`;
-
-        if (type === 'user') {
-            msgDiv.innerHTML = `<strong>आप | You:</strong> ${escapeHtml(text)}`;
-        } else if (type === 'bot') {
-            msgDiv.innerHTML = `<strong>सलाहकार | Advisor:</strong> ${escapeHtml(text)}`;
-            lastBotMessage = text; // Store for text-to-speech
-        } else if (type === 'sources') {
-            msgDiv.innerHTML = `<strong>स्रोत | Sources:</strong> ${escapeHtml(text)}`;
-        } else if (type === 'error') {
-            msgDiv.innerHTML = `<strong>त्रुटि | Error:</strong> ${escapeHtml(text)}`;
-        }
-
-        chatbox.appendChild(msgDiv);
-        chatbox.scrollTop = chatbox.scrollHeight;
-    }
-
-    function clearChat() {
-        document.getElementById('chatbox').innerHTML = '';
-    }
-
-    // Voice Input
-    document.getElementById('voiceBtn').addEventListener('click', () => {
-        if (!recognition) {
-            showAlert('Voice input not supported in this browser', 'error');
-            return;
-        }
-
-        const voiceBtn = document.getElementById('voiceBtn');
-        const lang = getLanguage();
-        recognition.lang = languageCodes[lang] || 'hi-IN';
-
-        voiceBtn.classList.add('recording');
-        voiceBtn.textContent = '🎙️';
-
-        recognition.start();
-
-        recognition.onresult = (event) => {
-            const transcript = event.results[0][0].transcript;
-            document.getElementById('question').value = transcript;
-            voiceBtn.classList.remove('recording');
-            voiceBtn.textContent = '🎤';
+        const languageCodes = {
+            'english': 'en-US',
+            'hindi': 'hi-IN',
+            'marathi': 'mr-IN',
+            'tamil': 'ta-IN',
+            'telugu': 'te-IN',
+            'kannada': 'kn-IN',
+            'punjabi': 'pa-IN'
         };
 
-        recognition.onerror = (event) => {
-            showAlert('Voice recognition error: ' + event.error, 'error');
-            voiceBtn.classList.remove('recording');
-            voiceBtn.textContent = '🎤';
-        };
+        // Initialize
+        document.addEventListener('DOMContentLoaded', () => {
+            initSpeechRecognition();
+            // Check for mobile
+            if (window.innerWidth <= 768) {
+                document.querySelector('.container').style.padding = '10px';
+            }
+        });
 
-        recognition.onend = () => {
-            voiceBtn.classList.remove('recording');
-            voiceBtn.textContent = '🎤';
-        };
-    });
-
-    // Text-to-Speech
-    document.getElementById('speakBtn').addEventListener('click', () => {
-        if (!lastBotMessage) {
-            showAlert('No message to read', 'error');
-            return;
+        function getLanguage() {
+            return document.getElementById('languageSelect').value;
         }
 
-        if (synthesis.speaking) {
-            synthesis.cancel();
+        // Utility functions
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
         }
 
-        currentUtterance = new SpeechSynthesisUtterance(lastBotMessage);
-        const lang = getLanguage();
-        currentUtterance.lang = languageCodes[lang] || 'hi-IN';
-        currentUtterance.rate = 0.9;
-        currentUtterance.pitch = 1;
-        currentUtterance.volume = 1;
-
-        document.getElementById('speakBtn').style.display = 'none';
-        document.getElementById('stopSpeakBtn').style.display = 'block';
-
-        currentUtterance.onend = () => {
-            document.getElementById('speakBtn').style.display = 'block';
-            document.getElementById('stopSpeakBtn').style.display = 'none';
-        };
-
-        synthesis.speak(currentUtterance);
-    });
-
-    document.getElementById('stopSpeakBtn').addEventListener('click', () => {
-        synthesis.cancel();
-        document.getElementById('speakBtn').style.display = 'block';
-        document.getElementById('stopSpeakBtn').style.display = 'none';
-    });
-
-    // File upload handler
-    document.getElementById('uploadBtn').addEventListener('click', async () => {
-        const fileInput = document.getElementById('fileInput');
-        const files = fileInput.files;
-
-        if (!files || files.length === 0) {
-            showAlert('कृपया कम से कम एक फ़ाइल चुनें | Please select at least one file', 'error');
-            return;
+        function showAlert(message, type = 'info') {
+            const alertBox = document.getElementById('alertBox');
+            alertBox.textContent = message;
+            alertBox.className = `alert show ${type}`;
+            setTimeout(() => {
+                alertBox.classList.remove('show');
+            }, 5000);
         }
 
-        const uploadBtn = document.getElementById('uploadBtn');
-        uploadBtn.disabled = true;
-        uploadBtn.innerHTML = '<span class="spinner"></span> अपलोड हो रहा है | Uploading...';
+        function addMessage(text, type = 'user') {
+            const chatbox = document.getElementById('chatbox');
+            const msgDiv = document.createElement('div');
+            msgDiv.className = `msg ${type}`;
 
-        try {
-            const formData = new FormData();
-            for (let file of files) {
-                formData.append('files', file);
+            // Format text with line breaks
+            const formattedText = escapeHtml(text).replace(/\n/g, '<br>');
+
+            if (type === 'user') {
+                msgDiv.innerHTML = `<strong>आप | You:</strong> ${formattedText}`;
+            } else if (type === 'bot') {
+                msgDiv.innerHTML = `<strong>सलाहकार | Advisor:</strong><br>${formattedText}`;
+                lastBotMessage = text; // Store for text-to-speech
+            } else if (type === 'sources') {
+                msgDiv.innerHTML = `<strong>स्रोत | Sources:</strong> ${formattedText}`;
+            } else if (type === 'error') {
+                msgDiv.innerHTML = `<strong>त्रुटि | Error:</strong> ${formattedText}`;
             }
 
-            const res = await fetch('/upload', {
-                method: 'POST',
-                body: formData
-            });
+            chatbox.appendChild(msgDiv);
+            chatbox.scrollTop = chatbox.scrollHeight;
+        }
 
-            const data = await res.json();
+        function clearChat() {
+            document.getElementById('chatbox').innerHTML = '';
+        }
 
-            if (!res.ok) {
-                showAlert(data.error || 'Upload failed', 'error');
+        function initSpeechRecognition() {
+            if ('webkitSpeechRecognition' in window) {
+                recognition = new webkitSpeechRecognition();
+                recognition.continuous = false;
+                recognition.interimResults = false;
             } else {
-                showAlert(data.message, 'success');
-                fileInput.value = '';
-                clearChat();
+                document.getElementById('voiceBtn').style.display = 'none';
+                console.log('Web Speech API not supported');
             }
-        } catch (error) {
-            showAlert('Network error: ' + error.message, 'error');
-            console.error('Upload error:', error);
-        } finally {
-            uploadBtn.disabled = false;
-            uploadBtn.innerHTML = '📤 अपलोड करें | Upload Files';
         }
-    });
 
-    // Image preview
-    document.getElementById('imageInput').addEventListener('change', (e) => {
-        const file = e.target.files[0];
-        if (file) {
-            const reader = new FileReader();
-            reader.onload = (e) => {
-                document.getElementById('previewImg').src = e.target.result;
-                document.getElementById('imagePreview').classList.add('show');
+        // Voice Input
+        document.getElementById('voiceBtn').addEventListener('click', () => {
+            if (!recognition) {
+                showAlert('Voice input not supported in this browser', 'error');
+                return;
+            }
+
+            const voiceBtn = document.getElementById('voiceBtn');
+            const lang = getLanguage();
+            recognition.lang = languageCodes[lang] || 'hi-IN';
+
+            voiceBtn.classList.add('recording');
+            voiceBtn.textContent = '🎙️';
+
+            recognition.start();
+
+            recognition.onresult = (event) => {
+                const transcript = event.results[0][0].transcript;
+                document.getElementById('question').value = transcript;
+                voiceBtn.classList.remove('recording');
+                voiceBtn.textContent = '🎤';
             };
-            reader.readAsDataURL(file);
-        }
-    });
 
-    // Image analysis handler
-    document.getElementById('analyzeBtn').addEventListener('click', async () => {
-        const imageInput = document.getElementById('imageInput');
-        const imageFile = imageInput.files[0];
+            recognition.onerror = (event) => {
+                showAlert('Voice recognition error: ' + event.error, 'error');
+                voiceBtn.classList.remove('recording');
+                voiceBtn.textContent = '🎤';
+            };
 
-        if (!imageFile) {
-            showAlert('कृपया फसल की फोटो चुनें | Please select a crop image', 'error');
-            return;
-        }
+            recognition.onend = () => {
+                voiceBtn.classList.remove('recording');
+                voiceBtn.textContent = '🎤';
+            };
+        });
 
-        const analyzeBtn = document.getElementById('analyzeBtn');
-        analyzeBtn.disabled = true;
-        analyzeBtn.innerHTML = '<span class="spinner"></span> जांच हो रही है | Analyzing...';
-
-        try {
-            const formData = new FormData();
-            formData.append('image', imageFile);
-            formData.append('language', getLanguage());
-
-            const res = await fetch('/analyze_crop_image', {
-                method: 'POST',
-                body: formData
-            });
-
-            const data = await res.json();
-
-            if (!res.ok) {
-                addMessage(data.error || 'Analysis failed', 'error');
-            } else {
-                addMessage('फसल फोटो विश्लेषण | Crop Image Analysis', 'user');
-                addMessage(data.analysis, 'bot');
-                imageInput.value = '';
-                document.getElementById('imagePreview').classList.remove('show');
+        // Text-to-Speech
+        document.getElementById('speakBtn').addEventListener('click', () => {
+            if (!lastBotMessage) {
+                showAlert('No message to read', 'error');
+                return;
             }
-        } catch (error) {
-            addMessage('Network error: ' + error.message, 'error');
-            console.error('Analysis error:', error);
-        } finally {
-            analyzeBtn.disabled = false;
-            analyzeBtn.innerHTML = '🔍 फोटो जांचें | Analyze Image';
-        }
-    });
 
-    // Question send handler
-    document.getElementById('askBtn').addEventListener('click', sendQuestion);
-    document.getElementById('question').addEventListener('keypress', (e) => {
-        if (e.key === 'Enter' && !e.shiftKey) {
-            e.preventDefault();
-            sendQuestion();
-        }
-    });
-
-    async function sendQuestion() {
-        const questionInput = document.getElementById('question');
-        const question = questionInput.value.trim();
-
-        if (!question) {
-            showAlert('कृपया एक सवाल दर्ज करें | Please enter a question', 'error');
-            return;
-        }
-
-        addMessage(question, 'user');
-        questionInput.value = '';
-
-        const askBtn = document.getElementById('askBtn');
-        askBtn.disabled = true;
-        askBtn.innerHTML = '<span class="spinner"></span>';
-
-        try {
-            const res = await fetch('/ask', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    question: question,
-                    language: getLanguage()
-                })
-            });
-
-            const data = await res.json();
-
-            if (!res.ok) {
-                addMessage(data.error || 'Failed to get response', 'error');
-            } else {
-                addMessage(data.answer, 'bot');
-
-                if (data.sources && data.sources.length > 0) {
-                    addMessage(data.sources.join(', '), 'sources');
-                }
+            if (synthesis.speaking) {
+                synthesis.cancel();
             }
-        } catch (error) {
-            addMessage('Network error: ' + error.message, 'error');
-            console.error('Question error:', error);
-        } finally {
-            askBtn.disabled = false;
-            askBtn.innerHTML = '📤';
-        }
-    }
 
-    // Stop speech when language changes
-    document.getElementById('languageSelect').addEventListener('change', () => {
-        if (synthesis.speaking) {
+            currentUtterance = new SpeechSynthesisUtterance(lastBotMessage);
+            const lang = getLanguage();
+            currentUtterance.lang = languageCodes[lang] || 'hi-IN';
+            currentUtterance.rate = 0.9;
+            currentUtterance.pitch = 1;
+            currentUtterance.volume = 1;
+
+            document.getElementById('speakBtn').style.display = 'none';
+            document.getElementById('stopSpeakBtn').style.display = 'block';
+
+            currentUtterance.onend = () => {
+                document.getElementById('speakBtn').style.display = 'block';
+                document.getElementById('stopSpeakBtn').style.display = 'none';
+            };
+
+            synthesis.speak(currentUtterance);
+        });
+
+        document.getElementById('stopSpeakBtn').addEventListener('click', () => {
             synthesis.cancel();
             document.getElementById('speakBtn').style.display = 'block';
             document.getElementById('stopSpeakBtn').style.display = 'none';
-        }
-    });
-</script>
+        });
 
+        // File upload handler
+        document.getElementById('uploadBtn').addEventListener('click', async () => {
+            const fileInput = document.getElementById('fileInput');
+            const files = fileInput.files;
+
+            if (!files || files.length === 0) {
+                showAlert('कृपया कम से कम एक फ़ाइल चुनें | Please select at least one file', 'error');
+                return;
+            }
+
+            const uploadBtn = document.getElementById('uploadBtn');
+            uploadBtn.disabled = true;
+            uploadBtn.innerHTML = '<span class="spinner"></span> अपलोड हो रहा है | Uploading...';
+
+            try {
+                const formData = new FormData();
+                for (let file of files) {
+                    formData.append('files', file);
+                }
+
+                const res = await fetch('/upload', {
+                    method: 'POST',
+                    body: formData
+                });
+
+                const data = await res.json();
+
+                if (!res.ok) {
+                    showAlert(data.error || 'Upload failed', 'error');
+                } else {
+                    showAlert(data.message, 'success');
+                    fileInput.value = '';
+                    clearChat();
+                }
+            } catch (error) {
+                showAlert('Network error: ' + error.message, 'error');
+                console.error('Upload error:', error);
+            } finally {
+                uploadBtn.disabled = false;
+                uploadBtn.innerHTML = '📤 अपलोड करें | Upload Files';
+            }
+        });
+
+        // Image preview
+        document.getElementById('imageInput').addEventListener('change', (e) => {
+            const file = e.target.files[0];
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = (e) => {
+                    document.getElementById('previewImg').src = e.target.result;
+                    document.getElementById('imagePreview').classList.add('show');
+                };
+                reader.readAsDataURL(file);
+            }
+        });
+
+        // Image analysis handler
+        document.getElementById('analyzeBtn').addEventListener('click', async () => {
+            const imageInput = document.getElementById('imageInput');
+            const imageFile = imageInput.files[0];
+
+            if (!imageFile) {
+                showAlert('कृपया फसल की फोटो चुनें | Please select a crop image', 'error');
+                return;
+            }
+
+            const analyzeBtn = document.getElementById('analyzeBtn');
+            analyzeBtn.disabled = true;
+            analyzeBtn.innerHTML = '<span class="spinner"></span> जांच हो रही है | Analyzing...';
+
+            try {
+                const formData = new FormData();
+                formData.append('file', imageFile);
+                const lang = getLanguage();
+                formData.append('language', lang);
+
+                const res = await fetch('/analyze', {
+                    method: 'POST',
+                    body: formData
+                });
+
+                const data = await res.json();
+
+                if (!res.ok) {
+                    showAlert(data.error || 'Analysis failed', 'error');
+                    addMessage(data.error || 'Analysis failed', 'error');
+                } else {
+                    addMessage(data.response, 'bot');
+                }
+            } catch (error) {
+                showAlert('Network error: ' + error.message, 'error');
+                console.error('Analysis error:', error);
+            } finally {
+                analyzeBtn.disabled = false;
+                analyzeBtn.innerHTML = '🔍 फोटो जांचें | Analyze Image';
+            }
+        });
+
+        // Chat handler
+        document.getElementById('askBtn').addEventListener('click', async () => {
+            const questionInput = document.getElementById('question');
+            const question = questionInput.value.trim();
+
+            if (!question) return;
+
+            addMessage(question, 'user');
+            questionInput.value = '';
+
+            const askBtn = document.getElementById('askBtn');
+            askBtn.disabled = true;
+
+            try {
+                const lang = getLanguage();
+                const res = await fetch('/ask', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        question: question,
+                        language: lang
+                    })
+                });
+
+                const data = await res.json();
+
+                if (!res.ok) {
+                    addMessage(data.error || 'Failed to get response', 'error');
+                } else {
+                    addMessage(data.response, 'bot');
+                    if (data.sources && data.sources.length > 0) {
+                        const sourcesHtml = data.sources.map(s =>
+                            `<br>📄 ${s.title || 'Document'} (Page ${s.page || 'N/A'})`
+                        ).join('');
+                        addMessage(sourcesHtml, 'sources');
+                    }
+                }
+            } catch (error) {
+                addMessage('Network error: ' + error.message, 'error');
+            } finally {
+                askBtn.disabled = false;
+            }
+        });
+
+        // Enter key support
+        document.getElementById('question').addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') {
+                document.getElementById('askBtn').click();
+            }
+        });
+    </script>
 </body>
+
 </html>

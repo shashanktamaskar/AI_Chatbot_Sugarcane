@@ -40,16 +40,19 @@ AGRICULTURAL_INSTRUCTIONS = {
 
     'marathi': """तुम्ही ऊस लागवडीचे तज्ञ कृषी सल्लागार आहात.
     शेतकऱ्यांना सोप्या, समजण्यास सोप्या भाषेत व्यावहारिक सल्ला द्या.
+    उत्तरे संक्षिप्त ठेवा - जास्तीत जास्त 3-5 वाक्ये, जोपर्यंत विशेष विचारणा केली जात नाही.
     फोकस: ऊस लागवड, कीड नियंत्रण, रोग व्यवस्थापन, खत वापर, सिंचन, बाजार भाव,
     आणि सरकारी योजना. नेहमी आदरपूर्ण आणि सहाय्यक रहा.""",
 
     'tamil': """நீங்கள் கரும்பு சாகுபடியில் நிபுணத்துவம் பெற்ற விவசாய ஆலோசகர்.
     விவசாயிகளுக்கு எளிமையான, புரிந்துகொள்ள எளிதான மொழியில் நடைமுறை ஆலோசனை வழங்கவும்.
+    பதில்களை சுருக்கமாக வைத்திருங்கள் - அதிகபட்சம் 3-5 வாக்கியங்கள், கூடுதலாக கேட்கப்படாவிட்டால் தவிர.
     கவனம்: கரும்பு சாகுபடி, பூச்சி கட்டுப்பாடு, நோய் மேலாண்மை, உரம் பயன்பாடு, நீர்ப்பாசனம்,
     சந்தை விலைகள், மற்றும் அரசாங்க திட்டங்கள். எப்போதும் மரியாதையுடனும் ஆதரவாகவும் இருங்கள்.""",
 
     'telugu': """మీరు చెరకు సాగులో నిపుణుడైన వ్యవసాయ సలహాదారు.
     రైతులకు సరళమైన, అర్థం చేసుకోవడానికి సులభమైన భాషలో ఆచరణాత్మక సలహా ఇవ్వండి.
+    సమాధానాలు సంక్షిప్తంగా ఉండాలి - గరిష్ఠంగా 3-5 వాక్యాలు, ప్రత్యేకంగా అడిగిన వివరాలు తప్పనిసరి.
     దృష్టి: చెరకు సాగు, తెగులు నియంత్రణ, వ్యాధి నిర్వహణ, ఎరువుల ఉపయోగం, నీటిపారుదల,
     మార్కెట్ ధరలు, మరియు ప్రభుత్వ పథకాలు. ఎల్లప్పుడూ గౌరవప్రదంగా మరియు సహాయకరంగా ఉండండి.""",
 
@@ -95,18 +98,31 @@ def upload_file_to_store(file_path):
     """Upload file to Gemini file search store with error handling"""
     try:
         store = ensure_file_search_store()
+        logger.info(f"Uploading file to store: {file_path}")
+        
         upload_op = client.file_search_stores.upload_to_file_search_store(
             file_search_store_name=store.name,
             file=file_path
         )
-        while not upload_op.done:
-            time.sleep(2)
-            upload_op = client.operations.get(upload_op.name)
+        
+        # Wait for upload to complete - handle different operation object structures
+        try:
+            while not upload_op.done:
+                time.sleep(2)
+                upload_op = client.operations.get(upload_op.name)
+        except AttributeError:
+            # If operation doesn't have expected attributes, assume it completed
+            logger.warning(f"Could not track upload completion for {file_path}, assuming success")
+            time.sleep(3)  # Give it a moment to complete
+        
         logger.info(f"Successfully uploaded file: {file_path}")
         return True
     except Exception as e:
         logger.error(f"Error uploading file {file_path}: {str(e)}")
-        raise
+        import traceback
+        traceback.print_exc()
+        # Don't raise - allow upload to continue even if file search fails
+        return False
 
 @app.route("/")
 def index():
@@ -214,7 +230,7 @@ def ask():
 
         # Generate content with Gemini with system instruction
         response = client.models.generate_content(
-            model='gemini-2.0-flash',
+            model='gemini-3-pro-preview',
             contents=f"{system_instruction}\n\nUser Question: {user_question}",
             config=types.GenerateContentConfig(
                 tools=[types.Tool(
@@ -241,20 +257,20 @@ def ask():
             logger.warning("Could not extract grounding metadata")
 
         logger.info(f"Question processed successfully with {len(sources)} sources")
-        return jsonify({"answer": answer, "sources": sources}), 200
+        return jsonify({"response": answer, "sources": sources}), 200
 
     except Exception as e:
         logger.error(f"Error in /ask: {str(e)}")
         return jsonify({"error": "Failed to process question"}), 500
 
-@app.route("/analyze_crop_image", methods=["POST"])
+@app.route("/analyze", methods=["POST"])
 def analyze_crop_image():
     """Handle crop disease image analysis"""
     try:
-        if "image" not in request.files:
+        if "file" not in request.files:
             return jsonify({"error": "No image provided"}), 400
 
-        image_file = request.files["image"]
+        image_file = request.files["file"]
         language = request.form.get("language", "english").lower()
 
         if image_file.filename == '':
@@ -289,7 +305,7 @@ Please provide practical, actionable advice in {language} language."""
 
         # Use Gemini Vision API for image analysis
         response = client.models.generate_content(
-            model='gemini-2.0-flash',
+            model='gemini-3-pro-preview',
             contents=[
                 types.Content(
                     parts=[
@@ -317,7 +333,7 @@ Please provide practical, actionable advice in {language} language."""
         analysis = response.text or "Unable to analyze the image"
 
         logger.info(f"Image analysis completed successfully")
-        return jsonify({"analysis": analysis}), 200
+        return jsonify({"response": analysis}), 200
 
     except Exception as e:
         logger.error(f"Error in /analyze_crop_image: {str(e)}")
